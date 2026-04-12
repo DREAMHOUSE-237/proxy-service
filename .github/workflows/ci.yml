@@ -12,28 +12,33 @@ jobs:
     steps:
       # 1. Récupérer le code
       - name: Checkout code
-        uses: actions/checkout@v4   # mise à jour vers v4
+        uses: actions/checkout@v4
 
-      # 2. Lancer les tests (à adapter selon ton stack Django)
-      - name: Run tests
-        run: |
-          echo "Exécute tes tests ici (pyt
-          est, manage.py test, etc.)"
+      # 2. Installer JDK
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-      # 3. Se connecter à Docker Hub
+      # 3. Build avec Maven (compile et génère le .jar dans target/)
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # 4. Se connecter à Docker Hub
       - name: Login to Docker Hub
-        uses: docker/login-action@v3   # mise à jour vers v3
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4. Construire et tagger l’image
+      # 5. Construire et tagger l’image
       - name: Build Docker image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/proxy-service:${{ github.sha }} .
           docker tag ${{ secrets.DOCKERHUB_USERNAME }}/proxy-service:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/proxy-service:latest
 
-      # 5. Pousser l’image vers Docker Hub
+      # 6. Pousser l’image vers Docker Hub
       - name: Push Docker image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/proxy-service:${{ github.sha }}
@@ -60,9 +65,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger deploy workflow in infrastructure repo
-        uses: peter-evans/repository-dispatch@v3   # mise à jour vers v3
+        uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.GH_PAT }}   # ⚠️ PAT avec droits Contents + Metadata + Actions
-          repository: DREAMHOUSE-237/infrastructure   # ⚠️ remplace par ton organisation et repo exact
+          token: ${{ secrets.GH_PAT }}   # PAT avec droits Contents + Metadata + Actions
+          repository: DREAMHOUSE-237/infrastructure
           event-type: deploy-proxy-service
-
