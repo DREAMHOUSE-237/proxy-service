@@ -25,27 +25,39 @@ public class CorsGlobalFilter {
     );
 
     @Bean
-    @Order(Ordered.HIGHEST_PRECEDENCE)  // ← runs before Spring Security
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     public WebFilter corsFilter() {
         return (ServerWebExchange exchange, WebFilterChain chain) -> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
-            HttpHeaders headers = response.getHeaders();
 
             String origin = request.getHeaders().getOrigin();
 
-            if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
-                headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
-                headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-                headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH");
-                headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
-                headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
-            }
-
-            // Preflight: short-circuit immediately, never forward to upstream
+            // Preflight: respond immediately with all CORS headers
             if (request.getMethod() == HttpMethod.OPTIONS) {
+                if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
+                    HttpHeaders headers = response.getHeaders();
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
+                }
                 response.setStatusCode(HttpStatus.OK);
                 return response.setComplete();
+            }
+
+            // For actual requests: inject headers right before response is committed
+            if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
+                response.beforeCommit(() -> {
+                    HttpHeaders headers = response.getHeaders();
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
+                    return Mono.empty();
+                });
             }
 
             return chain.filter(exchange);
