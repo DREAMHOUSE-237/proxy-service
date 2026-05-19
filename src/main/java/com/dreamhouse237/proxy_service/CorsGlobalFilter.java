@@ -2,6 +2,8 @@ package com.dreamhouse237.proxy_service;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ public class CorsGlobalFilter {
     );
 
     @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)  // ← runs before Spring Security
     public WebFilter corsFilter() {
         return (ServerWebExchange exchange, WebFilterChain chain) -> {
             ServerHttpRequest request = exchange.getRequest();
@@ -31,7 +34,6 @@ public class CorsGlobalFilter {
 
             String origin = request.getHeaders().getOrigin();
 
-            // Only set CORS headers if the origin is in our allowlist
             if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
                 headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
                 headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
@@ -40,7 +42,7 @@ public class CorsGlobalFilter {
                 headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
             }
 
-            // Handle preflight: respond immediately without forwarding
+            // Preflight: short-circuit immediately, never forward to upstream
             if (request.getMethod() == HttpMethod.OPTIONS) {
                 response.setStatusCode(HttpStatus.OK);
                 return response.setComplete();
