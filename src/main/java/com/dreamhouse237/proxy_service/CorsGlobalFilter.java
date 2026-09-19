@@ -21,6 +21,7 @@ public class CorsGlobalFilter {
 
     private static final List<String> ALLOWED_ORIGINS = List.of(
         "https://dreamhouse237.onrender.com",
+        "https://frontend-virid-omega-48.vercel.app",
         "http://localhost:5173"
     );
 
