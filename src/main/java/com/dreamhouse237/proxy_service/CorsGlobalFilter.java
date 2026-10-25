@@ -41,7 +41,7 @@ public class CorsGlobalFilter {
                     headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
                     headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
                     headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH");
-                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, allowedHeaders(request));
                     headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
                 }
                 response.setStatusCode(HttpStatus.OK);
@@ -55,7 +55,7 @@ public class CorsGlobalFilter {
                     headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
                     headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
                     headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH");
-                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
+                    headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, allowedHeaders(request));
                     headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
                     return Mono.empty();
                 });
@@ -63,5 +63,12 @@ public class CorsGlobalFilter {
 
             return chain.filter(exchange);
         };
+    }
+
+    // "*" never covers Authorization (Fetch spec), and browsers are starting
+    // to block it: echo the headers the preflight asks for instead.
+    private static String allowedHeaders(ServerHttpRequest request) {
+        String requested = request.getHeaders().getFirst(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS);
+        return (requested == null || requested.isBlank()) ? "Authorization, Content-Type" : requested;
     }
 }
