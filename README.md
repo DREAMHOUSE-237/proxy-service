@@ -23,7 +23,7 @@ Chaque route réécrit le chemin (`RewritePath`) avant de le transmettre au serv
 
 - Java / Spring Cloud Gateway
 - Port interne `8080`
-- Exposé publiquement via **Traefik** (TLS Let's Encrypt, domaine `nip.io`)
+- Exposé publiquement via **Traefik** (TLS Let's Encrypt, domaine `dreamhouse237.duckdns.org`)
 
 ## Architecture & découverte de service
 
